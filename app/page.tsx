@@ -14,6 +14,7 @@ const layers = [
 export default function Home() {
   const [active, setActive] = useState(0);
   const [previous, setPrevious] = useState(0);
+  const [direction, setDirection] = useState<"down" | "up">("down");
   const sections = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
@@ -21,7 +22,13 @@ export default function Home() {
       const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
       if (!visible) return;
       const next = Number((visible.target as HTMLElement).dataset.layer);
-      setActive((current) => { if (current !== next) setPrevious(current); return next; });
+      setActive((current) => {
+        if (current !== next) {
+          setPrevious(current);
+          setDirection(next > current ? "down" : "up");
+        }
+        return next;
+      });
     }, { rootMargin: "-34% 0px -34% 0px", threshold: [0, .25, .6] });
     sections.current.forEach((section) => section && observer.observe(section));
     return () => observer.disconnect();
@@ -54,8 +61,9 @@ export default function Home() {
           <div className="stage-meta"><span>Layer 0{active + 1}</span><span>{layers[active].name}</span></div>
           <div className="specimen" style={{ transform: `translateY(${active * 5}px)` }}>
             <div className="pulse" key={`pulse-${active}`} />
-            {layers.map((layer, index) => <Image key={layer.name} className={index === active ? "layer-image active" : "layer-image"} src={layer.src} alt={`${layer.name} anatomy of a gecko`} width={1672} height={941} priority={index < 2} />)}
-            {previous !== active && <Image key={`peel-${active}`} className="peel-image" src={layers[previous].src} alt="" aria-hidden width={1672} height={941} />}
+            {direction === "up" && previous !== active && <Image key={`under-${active}`} className="under-image" src={layers[previous].src} alt="" aria-hidden width={1672} height={941} />}
+            {layers.map((layer, index) => <Image key={layer.name} className={`${index === active ? "layer-image active" : "layer-image"}${index === active && direction === "up" ? " restoring" : ""}`} src={layer.src} alt={`${layer.name} anatomy of a gecko`} width={1672} height={941} priority={index < 2} />)}
+            {direction === "down" && previous !== active && <Image key={`peel-${active}`} className="peel-image" src={layers[previous].src} alt="" aria-hidden width={1672} height={941} />}
           </div>
           <div className="progress">{layers.map((layer, index) => <span key={layer.name} className={index <= active ? "filled" : ""} />)}</div>
           <p className="whoosh" key={`word-${active}`}>WHOOSH</p>
